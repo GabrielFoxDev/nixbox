@@ -1,20 +1,9 @@
-let
-  home = builtins.getEnv "HOME";
-  mountIf = path: target:
-    if home != "" && builtins.pathExists (home + path)
-    then [ { source = "~" + path; inherit target; } ]
-    else [ ];
-in
 {
   nix.packages = [
     "sbt"
     "scala"
     "scala-cli"
   ];
-
-  mounts =
-    mountIf "/.cache/coursier" "~/.cache/coursier"
-    ++ mountIf "/.ivy2" "~/.ivy2";
 
   network.domains =
     [
@@ -27,4 +16,8 @@ in
     );
 
   scripts = [ ./scripts/setup.sh ];
+
+  # Warm coursier/ivy2 caches from host on every up. The command is
+  # sentinel-guarded inside the guest, so re-runs are no-ops once warmed.
+  hooks.post-up = [ "nixbox scala-sbt warm-cache" ];
 }
